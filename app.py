@@ -197,6 +197,10 @@ def load_dataframe(raw_source, labeled_source):
     return df_raw, df_labeled
 
 def build_df(df_labeled, stemmer, stopword_list, max_per_class):
+    # Validasi kolom wajib ada
+    for col in ['Tweet', 'sentimen']:
+        if col not in df_labeled.columns:
+            raise KeyError(f"Kolom '{col}' tidak ditemukan. Kolom tersedia: {list(df_labeled.columns)}")
     df = df_labeled[['Date','Tweet','sentimen']].copy()
     df = df.dropna(subset=['Tweet','sentimen'])
     df = df[df['Tweet'].str.strip() != ''].reset_index(drop=True)
@@ -224,6 +228,15 @@ def build_df(df_labeled, stemmer, stopword_list, max_per_class):
 # TRAINING — simpan di session_state
 # ─────────────────────────────────────────────
 def train_models(df):
+    # Validasi kolom sebelum training
+    if 'sentimen' not in df.columns:
+        raise KeyError(f"Kolom 'sentimen' tidak ada di dataframe. Kolom: {list(df.columns)}")
+    if df['sentimen'].isna().all():
+        raise ValueError("Semua nilai 'sentimen' adalah NaN — mapping label gagal.")
+    valid_labels = {'positif', 'negatif', 'netral'}
+    found = set(df['sentimen'].dropna().unique())
+    if not found.intersection(valid_labels):
+        raise ValueError(f"Label tidak valid: {found}. Harus salah satu dari {valid_labels}")
     le = LabelEncoder()
     dfc = df.copy()
     dfc['label'] = le.fit_transform(dfc['sentimen'])
@@ -355,11 +368,14 @@ except Exception as e:
     st.error(f"❌ Gagal membaca dataset: {e}")
     st.stop()
 
-# Debug info
-with st.expander("🔍 Debug info dataset (klik untuk lihat)", expanded=False):
+# Debug info — selalu tampil untuk bantu diagnosa
+with st.expander("🔍 Debug info dataset", expanded=True):
     st.write("**Kolom df_labeled:**", list(df_labeled.columns))
-    st.dataframe(df_labeled.head(3))
-    st.write("**Distribusi sentimen:**", df_labeled["sentimen"].value_counts().to_dict())
+    st.write("**Sampel nilai kolom sentiment_raw:**", 
+             df_labeled['sentiment_raw'].dropna().head(5).tolist() if 'sentiment_raw' in df_labeled.columns else "kolom tidak ada")
+    st.write("**Distribusi sentimen setelah mapping:**", 
+             df_labeled['sentimen'].value_counts().to_dict() if 'sentimen' in df_labeled.columns else "kolom sentimen tidak ada!")
+    st.dataframe(df_labeled[['Tweet','sentimen']].head(5) if 'sentimen' in df_labeled.columns else df_labeled.head(5))
 
 # ── Preprocessing (simpan di session_state agar tidak re-run saat slider tidak berubah)
 cache_key = f"df_{max_per_class}_{len(df_labeled)}"
