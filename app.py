@@ -106,17 +106,89 @@ def preprocess(text, stemmer, stopword_list):
 # Gunakan session_state untuk menyimpan hasil, dan @st.cache_resource
 # yang sudah terbukti bisa handle objek non-hashable.
 # ─────────────────────────────────────────────
+def read_csv_auto(source):
+    """Baca CSV/TSV dengan auto-detect separator."""
+    if isinstance(source, (str, os.PathLike)):
+        raw = open(source, 'rb').read()
+    else:
+        raw = source
+    # Coba tab dulu, lalu koma
+    for sep in ['\t', ',', ';']:
+        try:
+            df = pd.read_csv(io.BytesIO(raw), sep=sep, on_bad_lines='skip')
+            if df.shape[1] > 1:
+                return df
+        except Exception:
+            continue
+    return pd.read_csv(io.BytesIO(raw), on_bad_lines='skip')
+
 def load_dataframe(raw_source, labeled_source):
     """raw_source / labeled_source: path (str) atau bytes."""
-    if isinstance(raw_source, (str, os.PathLike)):
-        df_raw     = pd.read_csv(raw_source,     sep='\t', on_bad_lines='skip')
-        df_labeled = pd.read_csv(labeled_source, sep='\t', on_bad_lines='skip')
-    else:
-        df_raw     = pd.read_csv(io.BytesIO(raw_source),     sep='\t', on_bad_lines='skip')
-        df_labeled = pd.read_csv(io.BytesIO(labeled_source), sep='\t', on_bad_lines='skip')
+    df_raw     = read_csv_auto(raw_source)
+    df_labeled = read_csv_auto(labeled_source)
 
-    label_map = {0: 'negatif', 1: 'positif', 2: 'netral'}
-    df_labeled['sentimen'] = df_labeled['sentiment'].map(label_map)
+    # ── Auto-detect kolom sentiment (case-insensitive)
+    cols_lower = {c.lower(): c for c in df_labeled.columns}
+
+    # Cari kolom label
+    sentiment_col = None
+    for candidate in ['sentiment', 'sentimen', 'label', 'polarity', 'class']:
+        if candidate in cols_lower:
+            sentiment_col = cols_lower[candidate]
+            break
+    if sentiment_col is None:
+        raise ValueError(
+            f"Kolom label tidak ditemukan. Kolom yang ada: {list(df_labeled.columns)}"
+        )
+
+    # Cari kolom teks tweet
+    tweet_col = None
+    for candidate in ['tweet', 'text', 'teks', 'content', 'full_text']:
+        if candidate in cols_lower:
+            tweet_col = cols_lower[candidate]
+            break
+    if tweet_col is None:
+        raise ValueError(
+            f"Kolom tweet tidak ditemukan. Kolom yang ada: {list(df_labeled.columns)}"
+        )
+
+    # Cari kolom tanggal (opsional)
+    date_col = None
+    for candidate in ['date', 'tanggal', 'created_at', 'timestamp', 'time']:
+        if candidate in cols_lower:
+            date_col = cols_lower[candidate]
+            break
+
+    # Rename ke nama standar
+    rename_map = {tweet_col: 'Tweet', sentiment_col: 'sentiment_raw'}
+    if date_col:
+        rename_map[date_col] = 'Date'
+    df_labeled = df_labeled.rename(columns=rename_map)
+    if 'Date' not in df_labeled.columns:
+        df_labeled['Date'] = pd.NaT
+
+    # Map label: angka (0/1/2) atau teks (positif/negatif/netral)
+    label_map_num  = {0: 'negatif', 1: 'positif', 2: 'netral'}
+    label_map_text = {
+        'positive': 'positif', 'positif': 'positif', 'pos': 'positif',
+        'negative': 'negatif', 'negatif': 'negatif', 'neg': 'negatif',
+        'neutral':  'netral',  'netral':  'netral',  'net': 'netral',
+    }
+    sample_val = df_labeled['sentiment_raw'].dropna().iloc[0]
+    try:
+        # Kalau numerik
+        df_labeled['sentimen'] = pd.to_numeric(df_labeled['sentiment_raw']).map(label_map_num)
+    except (ValueError, TypeError):
+        # Kalau teks
+        df_labeled['sentimen'] = df_labeled['sentiment_raw'].astype(str).str.lower().map(label_map_text)
+
+    # Jika masih ada NaN (label tidak dikenali), drop baris tersebut
+    n_before = len(df_labeled)
+    df_labeled = df_labeled.dropna(subset=['sentimen'])
+    n_dropped = n_before - len(df_labeled)
+    if n_dropped > 0:
+        st.warning(f"⚠️ {n_dropped} baris dibuang karena label tidak dikenali.")
+
     return df_raw, df_labeled
 
 def build_df(df_labeled, stemmer, stopword_list, max_per_class):
@@ -269,10 +341,20 @@ if not ready:
 stemmer, stopword_list = init_nlp()
 
 # ── Load data
-if data_source == 'local':
-    df_raw, df_labeled = load_dataframe(LOCAL_RAW, LOCAL_LABELED)
-else:
-    df_raw, df_labeled = load_dataframe(uploaded_raw.read(), uploaded_labeled.read())
+try:
+    if data_source == 'local':
+        df_raw, df_labeled = load_dataframe(LOCAL_RAW, LOCAL_LABELED)
+    else:
+        df_raw, df_labeled = load_dataframe(uploaded_raw.read(), uploaded_labeled.read())
+except Exception as e:
+    st.error(f"❌ Gagal membaca dataset: {e}")
+    st.stop()
+
+# Debug info
+with st.expander("🔍 Debug info dataset (klik untuk lihat)", expanded=False):
+    st.write("**Kolom df_labeled:**", list(df_labeled.columns))
+    st.dataframe(df_labeled.head(3))
+    st.write("**Distribusi sentimen:**", df_labeled["sentimen"].value_counts().to_dict())
 
 # ── Preprocessing (simpan di session_state agar tidak re-run saat slider tidak berubah)
 cache_key = f"df_{max_per_class}_{len(df_labeled)}"
