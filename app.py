@@ -167,20 +167,25 @@ def load_dataframe(raw_source, labeled_source):
     if 'Date' not in df_labeled.columns:
         df_labeled['Date'] = pd.NaT
 
-    # Map label: angka (0/1/2) atau teks (positif/negatif/netral)
-    label_map_num  = {0: 'negatif', 1: 'positif', 2: 'netral'}
-    label_map_text = {
-        'positive': 'positif', 'positif': 'positif', 'pos': 'positif',
-        'negative': 'negatif', 'negatif': 'negatif', 'neg': 'negatif',
-        'neutral':  'netral',  'netral':  'netral',  'net': 'netral',
+    # Map label — support int (0/1/2), string angka ('0'/'1'/'2'), teks (positif/negatif/netral)
+    label_map_full = {
+        0: 'negatif', 1: 'positif', 2: 'netral',
+        '0': 'negatif', '1': 'positif', '2': 'netral',
+        'positif': 'positif', 'negatif': 'negatif', 'netral': 'netral',
+        'positive': 'positif', 'negative': 'negatif', 'neutral': 'netral',
+        'pos': 'positif', 'neg': 'negatif', 'net': 'netral',
     }
-    sample_val = df_labeled['sentiment_raw'].dropna().iloc[0]
-    try:
-        # Kalau numerik
-        df_labeled['sentimen'] = pd.to_numeric(df_labeled['sentiment_raw']).map(label_map_num)
-    except (ValueError, TypeError):
-        # Kalau teks
-        df_labeled['sentimen'] = df_labeled['sentiment_raw'].astype(str).str.lower().map(label_map_text)
+
+    def map_label(val):
+        if pd.isna(val):
+            return None
+        try:
+            return label_map_full.get(int(float(str(val).strip())))
+        except (ValueError, TypeError):
+            pass
+        return label_map_full.get(str(val).strip().lower())
+
+    df_labeled['sentimen'] = df_labeled['sentiment_raw'].apply(map_label)
 
     # Jika masih ada NaN (label tidak dikenali), drop baris tersebut
     n_before = len(df_labeled)
