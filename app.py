@@ -81,30 +81,44 @@ html, body, [data-testid="stApp"] {
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
-    background-color: var(--primary) !important;
-    border-right: none !important;
+    background-color: #0D1F35 !important;
+    border-right: 1px solid #1A3050 !important;
 }
 [data-testid="stSidebar"] * {
-    color: #E8F1FA !important;
+    color: #D6E6F5 !important;
+}
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div {
+    color: #D6E6F5 !important;
 }
 [data-testid="stSidebar"] .stSlider > div > div {
-    background: rgba(255,255,255,0.2) !important;
+    background: rgba(255,255,255,0.15) !important;
 }
 [data-testid="stSidebar"] .stSlider [data-baseweb="slider"] [data-testid="stThumbValue"] {
     color: white !important;
 }
 [data-testid="stSidebar"] hr {
-    border-color: rgba(255,255,255,0.2) !important;
+    border-color: #1A3050 !important;
 }
 [data-testid="stSidebar"] .stFileUploader label {
-    color: #BED7F0 !important;
+    color: #A8C8E8 !important;
     font-size: 0.82rem !important;
 }
 [data-testid="stSidebar"] code {
-    background: rgba(255,255,255,0.15) !important;
-    color: #BED7F0 !important;
-    padding: 1px 5px;
+    background: rgba(59,158,212,0.2) !important;
+    color: #7EC8EC !important;
+    padding: 1px 6px;
     border-radius: 3px;
+    font-size: 0.8rem !important;
+}
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+    color: #7A9EBF !important;
+}
+[data-testid="stSidebar"] strong, [data-testid="stSidebar"] b {
+    color: #FFFFFF !important;
 }
 
 /* ── Hero header ── */
@@ -300,23 +314,23 @@ div[data-testid="column"] .stButton > button[kind="secondary"]:hover {
 
 /* ── Status banners ── */
 .status-ok {
-    background: var(--green-bg);
-    border: 1px solid #A8DFC2;
-    border-left: 3px solid var(--green);
+    background: rgba(26,138,79,0.15);
+    border: 1px solid rgba(26,138,79,0.4);
+    border-left: 3px solid #1A8A4F;
     border-radius: 5px;
     padding: 0.7rem 1rem;
     font-size: 0.85rem;
-    color: var(--green);
+    color: #5EC991;
     font-weight: 500;
 }
 .status-warn {
-    background: #FFF8E6;
-    border: 1px solid #FAD87A;
+    background: rgba(230,168,23,0.12);
+    border: 1px solid rgba(230,168,23,0.35);
     border-left: 3px solid #E6A817;
     border-radius: 5px;
     padding: 0.7rem 1rem;
     font-size: 0.85rem;
-    color: #9B6C0E;
+    color: #F0C04A;
     font-weight: 500;
 }
 
@@ -374,12 +388,12 @@ div[data-testid="column"] .stButton > button[kind="secondary"]:hover {
     font-family: 'DM Serif Display', serif;
     font-size: 1.15rem;
     font-weight: 400;
-    color: #FFFFFF;
+    color: #FFFFFF !important;
     margin-bottom: 0.15rem;
 }
 .sidebar-sub {
     font-size: 0.7rem;
-    color: rgba(255,255,255,0.55);
+    color: #7A9EBF !important;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
@@ -388,7 +402,7 @@ div[data-testid="column"] .stButton > button[kind="secondary"]:hover {
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.5);
+    color: #5A8AB0 !important;
     margin-bottom: 0.4rem;
     margin-top: 0.6rem;
 }
@@ -663,7 +677,7 @@ def make_fig(w, h, cols=1):
 with st.sidebar:
     # Logo / brand area
     st.markdown("""
-    <div style="background:rgba(255,255,255,0.08);border-radius:6px;padding:1rem 1.1rem;margin-bottom:0.5rem;">
+    <div style="background:rgba(59,158,212,0.12);border:1px solid #1A3A5C;border-left:3px solid #3B9ED4;border-radius:6px;padding:1rem 1.1rem;margin-bottom:0.5rem;">
       <div class="sidebar-brand">Analisis Sentimen PPKM</div>
       <div class="sidebar-sub">ADTT · Proyek Akhir 2026</div>
     </div>
