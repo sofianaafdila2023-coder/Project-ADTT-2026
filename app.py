@@ -258,8 +258,7 @@ def train_models(df):
     nb.fit(X_tr, y_train)
     y_nb = nb.predict(X_te)
 
-    lr = LogisticRegression(max_iter=1000, C=1.0, solver='lbfgs',
-                             multi_class='multinomial', random_state=42)
+    lr = LogisticRegression(max_iter=1000, C=1.0, solver='lbfgs', random_state=42)
     lr.fit(X_tr, y_train)
     y_lr = lr.predict(X_te)
 
