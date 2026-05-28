@@ -204,9 +204,13 @@ def build_df(df_labeled, stemmer, stopword_list, max_per_class):
     df = df_labeled[['Date','Tweet','sentimen']].copy()
     df = df.dropna(subset=['Tweet','sentimen'])
     df = df[df['Tweet'].str.strip() != ''].reset_index(drop=True)
-    df = df.groupby('sentimen').apply(
-        lambda x: x.sample(min(len(x), max_per_class), random_state=42)
-    ).reset_index(drop=True)
+
+    # Sampling per kelas — tanpa groupby().apply() agar aman di pandas terbaru
+    parts = []
+    for label in df['sentimen'].unique():
+        subset = df[df['sentimen'] == label]
+        parts.append(subset.sample(min(len(subset), max_per_class), random_state=42))
+    df = pd.concat(parts).reset_index(drop=True)
 
     progress = st.progress(0, text="Memproses tweet...")
     total = len(df)
